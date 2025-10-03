@@ -24,29 +24,43 @@ if (! function_exists('slugify_randomized')) {
             return $text;
         }
 
-        // generate random 5-char alphanumeric string
-        $random = substr(str_shuffle('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'), 0, 5);
+        // keep randomized part
+        if (preg_match('/^([a-zA-Z0-9]{5})-(.+)$/', $text, $matches)) {
+            $random = $matches[1];
+            $text   = $matches[2];
 
-        // normalize accents
+            // normalize accents
+            if (class_exists('Normalizer')) {
+                $text = Normalizer::normalize($text, Normalizer::FORM_D);
+            }
+
+            // remove accents
+            $text = preg_replace('/\p{Mn}/u', '', $text);
+
+            // replace non-word chars and spaces with hyphen
+            $text = preg_replace('/([^\w]+|\s+)/u', '-', $text);
+
+            // collapse multiple hyphens
+            $text = preg_replace('/-+/', '-', $text);
+
+            // trim leading/trailing hyphens
+            $text = trim($text, '-');
+
+            return strtolower($random . '-' . $text);
+        }
+
         if (class_exists('Normalizer')) {
             $text = Normalizer::normalize($text, Normalizer::FORM_D);
         }
-
-        // remove accents
         $text = preg_replace('/\p{Mn}/u', '', $text);
-
-        // replace non-word chars and spaces with hyphen
         $text = preg_replace('/([^\w]+|\s+)/u', '-', $text);
-
-        // collapse multiple hyphens
         $text = preg_replace('/-+/', '-', $text);
-
-        // trim leading/trailing hyphens
         $text = trim($text, '-');
 
-        return strtolower($random . '-' . $text);
+        return strtolower($text);
     }
 }
+
 
 class RandomizeSlugsPlugin {
     function randomize($text) {
